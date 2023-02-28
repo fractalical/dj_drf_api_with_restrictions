@@ -1,11 +1,14 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from advertisements.filters import AdvertisementFilter
-from advertisements.models import Advertisement
-from advertisements.permissions import IsOwner
-from advertisements.serializers import AdvertisementSerializer
+from advertisements.models import Advertisement, FavouriteAdv
+from advertisements.permissions import IsOwnerOrReadOnly, IsOwner
+from advertisements.serializers import AdvertisementSerializer, \
+    FavouriteAdvSerializer
 
 
 class AdvertisementViewSet(ModelViewSet):
@@ -13,13 +16,48 @@ class AdvertisementViewSet(ModelViewSet):
 
     # TODO: настройте ViewSet, укажите атрибуты для кверисета,
     #   сериализаторов и фильтров
-    queryset = Advertisement.objects.all()
+    queryset = Advertisement.objects.filter(status__in=["OPEN", "CLOSED",
+                                                        "Открыто", "Закрыто"])
     serializer_class = AdvertisementSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = AdvertisementFilter
 
     def get_permissions(self):
         """Получение прав для действий."""
+        print(self.action)
         if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [IsAuthenticated(), IsOwner()]
+            return [IsAuthenticated(), IsOwnerOrReadOnly()]
         return []
+
+    @action(detail=False)
+    def favourites_adv(self, request):
+
+        if request.user.is_anonymous:
+            msg = {"message":"You are not authenticated."}
+            return Response(msg)
+        user = request.user.id
+        queryset = Advertisement.objects.filter(add_to_favourite=user)
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=['post'],
+        permission_classes=[IsAuthenticated, IsOwner]
+    )
+    def add_to_favourite(self, request, pk=None):
+
+        adv = Advertisement.objects.get(id=int(pk))
+        user = request.user
+        if user.is_anonymous:
+            msg = {"message":"You are not authenticated."}
+        elif adv.creator_id == user.id:
+            msg = {"message":"You are cannot add your own advertisement."}
+        elif FavouriteAdv.objects.filter(users=user, advertisements=adv).exists():
+            msg = {"message":"This ADV already added."}
+        else:
+            fav_adv = FavouriteAdv.objects.create(users=user, advertisements=adv)
+            serializer = FavouriteAdvSerializer(fav_adv)
+            return Response(serializer.data)
+        return Response(msg)

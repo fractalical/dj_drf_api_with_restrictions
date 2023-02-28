@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from advertisements.models import Advertisement
+from advertisements.models import Advertisement, FavouriteAdv
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -51,4 +51,12 @@ class AdvertisementSerializer(serializers.ModelSerializer):
         if len(open_advs) == 10 and request_method == 'POST':
             raise ValidationError('Вы не можете добавить больше десяти '
                                   'открытых объявлений.')
+
         return data
+
+
+class FavouriteAdvSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = FavouriteAdv
+        fields = ['users', 'advertisements']
