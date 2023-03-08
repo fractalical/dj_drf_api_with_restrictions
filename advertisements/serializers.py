@@ -40,15 +40,18 @@ class AdvertisementSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data["creator"] = self.context["request"].user
-        return super(AdvertisementSerializer, self).update(instance, validated_data)
+        return super(AdvertisementSerializer, self).update(
+            instance, validated_data
+        )
 
     def validate(self, data):
         """Метод для валидации. Вызывается при создании и обновлении."""
         user = self.context["request"].user
-        user_adv = Advertisement.objects.filter(creator=user).values()
-        open_advs = [i for i in user_adv if i['status'] in ('OPEN', 'Открыто')]
+        open_advs = Advertisement.objects.filter(
+            creator=user, status__in=('OPEN', 'Открыто')
+        ).count()
         request_method = self.context["request"].method
-        if len(open_advs) == 10 and request_method == 'POST':
+        if open_advs == 10 and request_method in ('POST', 'PUT', 'PATCH'):
             raise ValidationError('Вы не можете добавить больше десяти '
                                   'открытых объявлений.')
 
@@ -59,4 +62,4 @@ class FavouriteAdvSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FavouriteAdv
-        fields = ['users', 'advertisements']
+        fields = ['user', 'advertisement']
