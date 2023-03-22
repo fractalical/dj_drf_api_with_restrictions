@@ -51,7 +51,9 @@ class AdvertisementSerializer(serializers.ModelSerializer):
             creator=user, status__in=('OPEN', 'Открыто')
         ).count()
         request_method = self.context["request"].method
-        if open_advs == 10 and request_method in ('POST', 'PUT', 'PATCH'):
+        print("DATA", data['status'])
+        if open_advs == 10 and request_method in ('POST', 'PUT', 'PATCH') \
+                and data['status'] in ('OPEN', 'открыто'):
             raise ValidationError('Вы не можете добавить больше десяти '
                                   'открытых объявлений.')
 
