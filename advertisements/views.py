@@ -6,7 +6,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from advertisements.filters import AdvertisementFilter
 from advertisements.models import Advertisement, FavouriteAdv
-from advertisements.permissions import IsOwnerOrReadOnly, IsOwner
+from advertisements.permissions import IsOwnerOrReadOnly, IsOwner, IsOwnerView
 from advertisements.serializers import AdvertisementSerializer, \
     FavouriteAdvSerializer
 
@@ -32,6 +32,8 @@ class AdvertisementViewSet(ModelViewSet):
                                 "Закрыто", "DRAFT", "Черновик"]
                 )
             return [IsAuthenticated(), IsOwnerOrReadOnly()]
+        elif self.action == "list":
+            return [IsOwnerView()]
         return []
 
     @action(detail=False)
